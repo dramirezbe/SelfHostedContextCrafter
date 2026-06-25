@@ -1,0 +1,290 @@
+\documentclass[11pt]{article}
+
+% ---------- Packages ----------
+\usepackage[a4paper, margin=2.4cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[spanish]{babel}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, fit, backgrounds, shapes.misc}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+
+% ---------- Colors ----------
+\definecolor{inkNavy}{HTML}{1B2A4A}
+\definecolor{accentTeal}{HTML}{0E7C7B}
+\definecolor{accentAmber}{HTML}{C97A2C}
+\definecolor{softGray}{HTML}{6B7280}
+\definecolor{bgPlanner}{HTML}{EAF3F3}
+\definecolor{bgBuild}{HTML}{FBF1E6}
+\definecolor{bgAudit}{HTML}{EEF0F8}
+\definecolor{lineGray}{HTML}{D7DBE0}
+
+% ---------- Heading typography ----------
+\titleformat{\section}
+  {\Large\bfseries\color{inkNavy}}
+  {\thesection}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.4em}{0.8em}
+
+\titleformat{\subsection}
+  {\large\bfseries\color{accentTeal}}
+  {\thesubsection}{0.5em}{}
+\titlespacing*{\subsection}{0pt}{1.1em}{0.5em}
+
+% ---------- Header/footer ----------
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[L]{\small\color{softGray}\href{https://github.com/dramirezbe/SelfHostedContextCrafter}{SelfHostedContextCrafter} --- Documento conceptual}
+\fancyfoot[R]{\small\color{softGray}\thepage}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accentTeal,
+  urlcolor=accentTeal,
+  pdftitle={SelfHostedContextCrafter},
+  pdfauthor={SelfHostedContextCrafter},
+  pdfsubject={Orquestador de agentes autohospedado para planificación acotada y auditoría de código}
+}
+
+\setlist[itemize]{leftmargin=1.4em, itemsep=0.3em, topsep=0.3em}
+
+% Reusable concept box
+\newtcolorbox{ideabox}[1]{
+  enhanced, breakable,
+  colback=white, colframe=lineGray,
+  boxrule=0.5pt, left=10pt, right=10pt, top=8pt, bottom=8pt,
+  borderline west={2.5pt}{0pt}{accentTeal},
+  before upper={\textbf{\color{inkNavy}#1}\\[4pt]}
+}
+
+\begin{document}
+
+% ================= COVER PAGE =================
+\begin{titlepage}
+\centering
+\vspace*{2.2cm}
+
+{\color{softGray}\large ORQUESTADOR DE AGENTES AUTOHOSPEDADO}\\[0.6cm]
+
+{\Huge\bfseries\color{inkNavy} \href{https://github.com/dramirezbe/SelfHostedContextCrafter}{SelfHostedContextCrafter}}\\[0.5cm]
+
+{\Large\color{accentTeal} Planificación acotada y auditoría de código\\ sobre infraestructura local}
+
+\vspace{1.8cm}
+
+\begin{tikzpicture}
+\draw[accentAmber, line width=1.2pt] (-3,0) -- (3,0);
+\end{tikzpicture}
+
+\vspace{1.8cm}
+
+{\large\color{softGray} Documento conceptual --- Propuesta de idea}
+
+\vspace{0.4cm}
+
+{\color{softGray} \today}
+
+\vfill
+
+{\small\color{softGray} Un sistema que separa \emph{pensar} (planificar con contexto verificable),\\ \emph{construir} (hacer con un humano al control) y \emph{verificar} (auditar contra la fuente),\\ todo ejecutándose en tu propio hardware.}
+
+\end{titlepage}
+
+% ================= EXECUTIVE SUMMARY =================
+\section*{Resumen ejecutivo}
+\addcontentsline{toc}{section}{Resumen ejecutivo}
+
+\href{https://github.com/dramirezbe/SelfHostedContextCrafter}{SelfHostedContextCrafter} es un orquestador de agentes LLM \textbf{autohospedado} diseñado para equipos que desarrollan software bajo restricciones del mundo real --- hardware específico, requisitos de negocio y normativas --- que no pueden (o no quieren) enviar esa información a un proveedor de IA en la nube.
+
+La idea central es simple pero poco común entre las herramientas actuales: \textbf{el agente nunca escribe código de producción}. Su única tarea es leer y digerir toda la documentación técnica relevante (hojas de datos de hardware, requisitos, normativas, contexto de arquitectura) y producir un \emph{plan avanzado} acotado y trazable. Ese plan es lo que un humano --- apoyado por su propio agente de código --- usa para construir. Una vez que el código existe, un segundo modo del mismo sistema lo \textbf{audita} contra el plan y la documentación original, devolviendo una puntuación por módulo, cambios sugeridos y advertencias específicas.
+
+Todo el ciclo se ejecuta en hardware local, con modelos LLM autohospedados, lo que hace viable este enfoque en contextos donde la confidencialidad del hardware, código o normativas es un requisito, no una preferencia.
+
+% ================= THE PROBLEM =================
+\section{El problema}
+
+Los asistentes de código actuales son potentes generando texto, pero comparten tres debilidades recurrentes en proyectos con restricciones del mundo real:
+
+\begin{itemize}
+  \item \textbf{Pierden el contexto original.} Generan código con apariencia razonable en el momento, pero sin trazabilidad clara hacia el requisito, normativa u hoja de datos de hardware que lo originó.
+  \item \textbf{Alucinan cuando el contexto está disperso.} Cuanto más fragmentada está la documentación (PDFs del fabricante, normativas, especificaciones internas), más fácil es que el modelo rellene vacíos con suposiciones.
+  \item \textbf{Requieren enviar información sensible a servicios externos.} El hardware propietario, las normativas internas o el código fuente no siempre pueden salir de la organización.
+\end{itemize}
+
+A esto se suma un problema de \textbf{control}: cuando un agente genera y audita su propio código en el mismo paso, no hay verificación independiente real --- es el mismo razonamiento revisándose a sí mismo.
+
+% ================= THE CORE IDEA =================
+\section{La idea central}
+
+\href{https://github.com/dramirezbe/SelfHostedContextCrafter}{SelfHostedContextCrafter} divide el ciclo de desarrollo en tres roles distintos, cada uno con una responsabilidad acotada:
+
+\begin{ideabox}{1. Planificar (Modo Planner)}
+Ingiere toda la documentación técnica disponible y la convierte en un plan de proyecto avanzado. No escribe una sola línea de código de producción: su entregable es la estructura del proyecto y un plan acotado a lo que la documentación realmente dice.
+\end{ideabox}
+
+\vspace{0.4em}
+
+\begin{ideabox}{2. Construir (Humano + agente de código)}
+Un desarrollador, apoyado por su agente de código de preferencia, ejecuta el plan. Aquí es donde se escribe realmente el software --- con criterio humano, y con el plan acotado como guía, no como camisa de fuerza.
+\end{ideabox}
+
+\vspace{0.4em}
+
+\begin{ideabox}{3. Auditar (Modo Auditor)}
+El mismo sistema, conservando la memoria de todo lo ingerido durante la fase de planificación, revisa el código resultante contra el plan original y la documentación fuente. Devuelve una puntuación por módulo, cambios sugeridos y advertencias específicas.
+\end{ideabox}
+
+\vspace{0.6em}
+
+La clave no es ninguno de los tres pasos por sí solo, sino que los tres comparten la \textbf{misma base de conocimiento retenida} (RAG). El auditor no audita en el vacío: audita contra exactamente el mismo contexto normativo y técnico que generó el plan, lo que hace que sus advertencias sean trazables hasta la fuente original.
+
+% ================= ARCHITECTURE =================
+\section{Arquitectura de flujo conceptual}
+
+\begin{figure}[h!]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  font=\small,
+  box/.style={draw, rounded corners=2pt, align=center, minimum height=0.9cm, inner sep=6pt, line width=0.6pt},
+  input/.style={box, draw=accentTeal, fill=white, text width=2.6cm},
+  proc/.style={box, draw=inkNavy, fill=inkNavy!85, text=white, text width=3.2cm, font=\small\bfseries},
+  outbox/.style={box, draw=accentTeal!70, fill=white, text width=2.6cm},
+  human/.style={box, draw=accentAmber, fill=accentAmber!12, text width=4.6cm, minimum height=1.1cm},
+  note/.style={font=\scriptsize\itshape, text=softGray, align=center},
+  arr/.style={-{Stealth[length=2.2mm]}, line width=0.7pt, color=softGray},
+  stagebg/.style={rounded corners=4pt, line width=0pt},
+  stagelabel/.style={font=\bfseries\small, text=inkNavy}
+]
+
+% ---------- COLUMN 1: PLANNER MODE ----------
+\node[input] (hw) at (0,8.0) {Contexto HW};
+\node[input] (req) at (0,6.3) {Contexto de requisitos};
+\node[input] (norm) at (0,4.6) {Contexto normativo};
+\node[input, text width=2.9cm] (esp) at (0,2.3) {Contexto específico\\(arq./protocolos/\\advertencias)};
+
+\node[proc, text width=2.6cm] (conv1) at (3.6,5.2) {Conversor\\PDF \(\to\) MD};
+\node[proc, text width=2.9cm, minimum height=1.6cm] (fw1) at (7.4,5.2) {FRAMEWORK\\\footnotesize (Modo Planner)};
+\node[note, text width=2.9cm] at (7.4,4.0) {retiene RAGs,\\PDFs y MDs};
+
+\node[outbox] (struct) at (11.0,6.6) {Estructura del proyecto};
+\node[outbox] (plan) at (11.0,3.8) {Plan avanzado};
+
+\draw[arr] (hw) -- (conv1);
+\draw[arr] (req) -- (conv1);
+\draw[arr] (norm) -- (conv1);
+\draw[arr] (esp) -- (conv1);
+\draw[arr] (conv1) -- (fw1);
+\draw[arr] (fw1) -- (struct);
+\draw[arr] (fw1) -- (plan);
+
+\begin{scope}[on background layer]
+\node[stagebg, fill=bgPlanner, fit=(hw)(req)(norm)(esp)(conv1)(fw1)(struct)(plan), inner sep=10pt] (stage1) {};
+\end{scope}
+\node[stagelabel] at (stage1.north) [above, yshift=2pt] {MODO 1 --- PLANNER};
+
+% ---------- STAGE 2: HUMAN + AGENT ----------
+\node[human, text width=5.8cm] (build) at (7.4,-0.6) {Humano + agente de código\\\footnotesize construye el software};
+\node[outbox, fill=white] (code) at (7.4,-2.3) {Código fuente};
+
+% Advanced plan -> Build (right-angle route, avoiding text overlap)
+\draw[arr] (plan.south) -- (11.0,2.0) -- (7.4,2.0) -- (build.north);
+\draw[arr] (build) -- (code);
+
+\begin{scope}[on background layer]
+\node[stagebg, fill=bgBuild, fit=(build), inner sep=10pt] (stage2) {};
+\end{scope}
+\node[stagelabel] at (stage2.north) [above, yshift=2pt] {CONSTRUIR};
+
+% ---------- COLUMN 3: AUDITER MODE ----------
+\node[proc, text width=2.6cm] (conv2) at (3.6,-4.5) {Conversor\\(análisis de código)};
+\node[proc, text width=2.9cm, minimum height=1.6cm] (fw2) at (7.4,-5.2) {FRAMEWORK\\\footnotesize (Modo Auditor)};
+\node[note, text width=3.1cm] at (7.4,-6.4) {retiene RAGs\\y agentes\\(continuidad del Modo 1)};
+
+\node[outbox] (score) at (11.0,-3.9) {Puntuación por módulo};
+\node[outbox] (changes) at (11.0,-5.2) {Cambios sugeridos};
+\node[outbox] (warn) at (11.0,-6.5) {Advertencias específicas};
+
+\draw[arr] (code) -- (conv2);
+\draw[arr] (conv2) -- (fw2);
+\draw[arr] (fw2) -- (score);
+\draw[arr] (fw2) -- (changes);
+\draw[arr] (fw2) -- (warn);
+
+\begin{scope}[on background layer]
+\node[stagebg, fill=bgAudit, fit=(conv2)(fw2)(score)(changes)(warn), inner sep=10pt] (stage3) {};
+\end{scope}
+\node[stagelabel] at (stage3.south) [below, yshift=-2pt] {MODO 2 --- AUDITOR};
+
+% ---------- FEEDBACK LOOP (outer route, no crossings) ----------
+\draw[arr, color=accentAmber, line width=1pt] (changes.east) -- (13.2,-5.2) -- (13.2,-0.6) -- (build.east);
+\node[note, text width=2.6cm, text=accentAmber] at (13.2,-2.9) [right] {itera la\\construcción};
+
+\end{tikzpicture}%
+}
+\caption{\small Flujo conceptual: el contexto fluye desde el Planner hacia la etapa de Construcción y de allí al Auditor, sin que el agente toque código de producción directamente. Los cambios sugeridos y las advertencias se realimentan al ciclo de construcción.}
+\end{figure}
+
+\subsection{Leyendo el diagrama}
+
+\begin{itemize}
+  \item \textbf{El Modo 1} normaliza cuatro fuentes de contexto distintas (hardware, requisitos, normativas, contexto específico) a través de un único conversor PDF\,\(\to\)\,MD, para que el Framework trabaje siempre sobre texto homogéneo. La salida no es código: es una estructura de proyecto y un plan avanzado, y el Framework retiene el material fuente como una base de conocimiento persistente.
+  \item \textbf{La etapa de construcción} es deliberadamente humana. El plan avanzado y el contexto retenido alimentan al desarrollador y su agente de código de preferencia, pero las decisiones de implementación permanecen en manos humanas.
+  \item \textbf{El Modo 2} recibe el código resultante (a través de un conversor dedicado orientado al análisis de código) y el mismo plan avanzado. El Framework en este modo no parte de cero: retiene los RAGs y agentes del Modo 1, por lo que puede auditar el código contra la documentación original, no solo contra el plan.
+\end{itemize}
+
+% ================= DESIGN PRINCIPLES =================
+\section{Principios de diseño}
+
+\begin{ideabox}{Autohospedado por defecto}
+Modelos LLM ejecutándose en hardware local. Ninguna hoja de datos de hardware, normativa interna o línea de código necesita salir de tu propia infraestructura para que el sistema funcione.
+\end{ideabox}
+
+\vspace{0.4em}
+
+\begin{ideabox}{El agente planifica, el humano construye}
+Separar la generación del plan de la generación de código reduce la superficie de alucinación donde más duele: las decisiones arquitectónicas. El código lo sigue escribiendo quien tiene el criterio y la responsabilidad final.
+\end{ideabox}
+
+\vspace{0.4em}
+
+\begin{ideabox}{Planificación acotada, no plantillas genéricas}
+El plan avanzado no proviene del conocimiento general del modelo: proviene de lo que la documentación ingerida realmente dice. Eso lo hace más acotado, pero también más fiable y más fácil de justificar en una auditoría real.
+\end{ideabox}
+
+\vspace{0.4em}
+
+\begin{ideabox}{Auditoría con memoria, no auditoría ciega}
+Al retener RAGs y agentes entre modos, el auditor evalúa el código contra la misma fuente de verdad que generó el plan --- no contra una interpretación nueva y potencialmente diferente del mismo problema.
+\end{ideabox}
+
+% ================= USE CASES =================
+\section{Dónde encaja esta idea}
+
+\begin{itemize}
+  \item Equipos de \textbf{firmware o sistemas embebidos} que trabajan con hojas de datos de fabricantes y normativas de seguridad (industrial, automotriz, médica) y que no pueden subir esos documentos a un LLM en la nube.
+  \item Organizaciones con \textbf{requisitos de soberanía de datos} que ya tienen, o están dispuestas a invertir en, cómputo local para inferencia de modelos.
+  \item Proyectos donde el \textbf{costo de una mala interpretación normativa} es alto, y donde tener un plan trazable a la documentación fuente tiene valor por sí mismo, más allá de la velocidad de desarrollo.
+\end{itemize}
+
+% ================= CLOSING =================
+\section{En una frase}
+
+\begin{center}
+\begin{tcolorbox}[
+  enhanced, colback=inkNavy, colframe=inkNavy,
+  coltext=white, width=0.9\textwidth, halign=center,
+  arc=3pt, boxrule=0pt
+]
+\large\itshape ``Un orquestador que separa pensar, construir y verificar --- uno que nunca asume lo que la documentación no dice, y nunca abandona el hardware sobre el que se ejecuta.''
+\end{tcolorbox}
+\end{center}
+
+\end{document}
